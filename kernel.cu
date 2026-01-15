@@ -16,19 +16,19 @@
 */
 
 // Include files
-#include <time.h> //changed to time.h for windows (sys/time.h used on linux?)
-#include <stdlib.h> // Added to use malloc
-#include <math.h> // Added to be able to use math.h
+#include <time.h> //changed to time.h for windows (sys/time.h used on linux?), clock_t, clock(), CLOCKS_PER_SEC
+#include <stdlib.h> // Added to use malloc(), free()
+#include <math.h> // needed for fabs, asb value floating
 #include <stdio.h>
 
 // Defines
-#define N 1000 // Length of the vector
+#define N 1000 // Length of the vector N = 1000
 
 // Global variables
 float *A_CPU, *B_CPU, *C_CPU;
-float Tolerance = 0.0001f;
+float Tolerance = 0.0001f; //float 
 
-// Function prototypes
+// Function prototypes, telling sys to be ready for these
 void allocateMemory();
 void innitialize();
 void addVectorsCPU(float*, float*, float*, int);
@@ -36,7 +36,7 @@ bool check(float*, int, float);
 long elaspedTime(clock_t start, clock_t end); //replaced timeval with clock_t since I removed <sys/time.h>
 void cleanUp();
 
-//Allocating the memory we will be using.
+//Reserving the spots for arrays
 void allocateMemory()
 {
 	// Host "CPU" memory.				
@@ -177,4 +177,5 @@ int main()
 
 	
 	return(0);
+
 }
