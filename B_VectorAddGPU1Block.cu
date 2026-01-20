@@ -65,6 +65,7 @@
 // Include files
 #include <sys/time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 // Defines
 #define N 1500 // Length of the vector
@@ -82,8 +83,8 @@ void allocateMemory();
 void innitialize();
 void addVectorsCPU(float*, float*, float*, int);
 __global__ void addVectorsGPU(float*, float*, float*, int); // fixing the *after hte floats
-bool  check(float*, int);
-long elaspedTime(struct timeval, struct timeval);
+bool  check(float*, int, float);
+long elapsedTime(struct timeval, struct timeval);
 void cleanUp();
 
 // This will be the layout of the parallel space we will be using.
@@ -138,7 +139,10 @@ __global__ void addVectorsGPU(float *a, float *b, float *c, int n) //changing th
 	int tid = threadIdx.x; // 0..1023 what thread are we in within the block (xdirec)
 	int stride = blockDim.x;  // 1024
 	for (int i = tid; i < n; i += stride)// i=i+stride element jump for each (execution) but all done in one instance
-	c[i] = a[i] + b[i];
+	{	
+		c[i] = a[i] + b[i];
+	}
+
 }
 //threadIdx.x is the x coordinate of the current thread
 //Kernal Time
@@ -152,7 +156,7 @@ __global__ void addVectorsGPU(float *a, float *b, float *c, int n) //changing th
 
 
 // Checking to see if anything went wrong in the vector addition.
-bool check(float *c, int n, float tolerence)
+bool check(float *c, int n, float tolerance)
 {
 	int id;
 	double myAnswer;
@@ -170,7 +174,7 @@ bool check(float *c, int n, float tolerence)
 	
 	percentError = fabs((myAnswer - trueAnswer)/trueAnswer)*100.0; //used fabs because I can use it with doubles 
 	
-	if(percentError < Tolerance) 
+	if(percentError < tolerance) 
 	{
 		return(true);
 	}
@@ -180,8 +184,8 @@ bool check(float *c, int n, float tolerence)
 	}
 }
 
-// Calculating elasped time.
-long elaspedTime(struct timeval start, struct timeval end)
+// Calculating elapsed time.
+long elapsedTime(struct timeval start, struct timeval end)
 {
 	// tv_sec equals the number of seconds past the Unix epoch 01/01/1970
 	// tv_usec equals the number of microseconds past the current second.
@@ -189,12 +193,12 @@ long elaspedTime(struct timeval start, struct timeval end)
 	long startTime = start.tv_sec * 1000000 + start.tv_usec; // In microseconds.
 	long endTime = end.tv_sec * 1000000 + end.tv_usec; // In microseconds
 
-	// Returning the total time elasped in microseconds
+	// Returning the total time elapsed in microseconds
 	return endTime - startTime;
 }
 
 // Cleaning up memory after we are finished.
-void CleanUp()
+void cleanUp()
 {
 	// Freeing host "CPU" memory.
 	free(A_CPU); 
@@ -225,7 +229,7 @@ int main()
 	gettimeofday(&start, NULL);
 	addVectorsCPU(A_CPU, B_CPU ,C_CPU, N);
 	gettimeofday(&end, NULL);
-	timeCPU = elaspedTime(start, end);
+	timeCPU = elapsedTime(start, end);
 	
 	// Zeroing out the C_CPU vector just to be safe because right now it has the correct answer in it.
 	for(int id = 0; id < N; id++)
@@ -237,7 +241,7 @@ int main()
 	gettimeofday(&start, NULL);
 	
 	// Copy Memory from CPU to GPU		
-	cudaMemcpyAsync(A_GPU, A_CPU, N*sizeof(float), cudaMemcpyHostToDevice); //copying CPU array to CPU array
+	cudaMemcpyAsync(A_GPU, A_CPU, N*sizeof(float), cudaMemcpyHostToDevice); //copying CPU array to GPU array
 	cudaMemcpyAsync(B_GPU, B_CPU, N*sizeof(float), cudaMemcpyHostToDevice); //called Async because neither device or host wait for eachother just copying data
 	
 	addVectorsGPU<<<GridSize,BlockSize>>>(A_GPU, B_GPU ,C_GPU, N);
@@ -258,11 +262,11 @@ int main()
 	// Error after sync
 	err = cudaDeviceSynchronize();
 	if (err != cudaSuccess)
-		printf("Kernal launch error: %s\n", cudaGetErrorString(err));
+		printf("Kernal launch error: %s\n", cudaGetErrorString(err)); //prints readable error message
 
 
 	gettimeofday(&end, NULL);
-	timeGPU = elaspedTime(start, end);
+	timeGPU = elapsedTime(start, end);
 	
 	// Checking to see if all went correctly.
 	if(check(C_CPU, N, Tolerance) == false)
@@ -277,7 +281,7 @@ int main()
 	}
 	
 	// Your done so cleanup your room.	
-	CleanUp();	
+	cleanUp();	
 	
 	// Making sure it flushes out anything in the print buffer.
 	printf("\n\n");
