@@ -2,7 +2,7 @@
 // Simple Julia CPU.
 // nvcc F_JuliaCPUtoGPU.cu -o temp -lglut -lGL
 // glut and GL are openGL libraries.
-/*
+/*j
  What to do:
  This code displays a simple Julia fractal using the CPU.
  Rewrite the code so that it uses the GPU to create the fractal. 
