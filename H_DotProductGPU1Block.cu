@@ -1,4 +1,4 @@
-// Name:
+// Name: Joe Gonzalez
 // Vector Dot product on 1 block 
 // nvcc H_DotProductGPU1Block.cu -o temp
 /*
@@ -137,14 +137,14 @@ __global__ void dotProductGPU(float *a, float *b, float *C_GPU, int n)
     int active = n; // number of elements that we are still using 
   
   
-    while(active > 1)
+    while(active > 1) // when active == 1 we have our answer
  { 
         int half  = active / 2; // equals half of the current value (truncated result)
         int odd = active % 2; // returns the remainder
     
 
     if(tid < half) // only the first threads do addition because only they have partners 
-                   // in this case (823) 0-410
+                   // in this case (823) 0-411
     { 
         C_GPU[tid] += C_GPU[tid + half]; // get half value and then add the threadidx
                                          // now the threads know where to start
@@ -162,7 +162,7 @@ __global__ void dotProductGPU(float *a, float *b, float *C_GPU, int n)
 
     // the new active length, add odd[0 1]
     active = half; // we killed the last element by adding it to the first, so now active region is half
-
+                   // 411
  }
 }
 // Checking to see if anything went wrong in the vector addition.
@@ -249,8 +249,6 @@ int main()
 	cudaMemcpyAsync(C_CPU, C_GPU, N*sizeof(float), cudaMemcpyDeviceToHost);
 	cudaErrorCheck(__FILE__, __LINE__);
 
-    cudaDeviceSynchronize();
-    
 	DotGPU = C_CPU[0]; // C_GPU was copied into C_CPU.
 	
 	// Making sure the GPU and CPU wiat until each other are at the same place.
