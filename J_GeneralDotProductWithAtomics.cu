@@ -54,7 +54,7 @@
 #include <cuda_runtime.h>   // NEW: needed for cudaDeviceProp, cudaGetDeviceCount, etc.
 
 // Defines
-#define N 1000000 // Length of the vector
+#define N 1000 // Length of the vector
 #define BLOCK_SIZE 256 // Threads in a block; power of 2 and 8 warps 
 
 // Global variables
@@ -63,7 +63,7 @@ float *A_GPU, *B_GPU, *C_GPU; //GPU pointers
 float DotCPU, DotGPU;
 dim3 BlockSize; //This variable will hold the Dimensions of your blocks
 dim3 GridSize; //This variable will hold the Dimensions of your grid
-float Tolerance = 1.01f;
+float Tolerance = .01f;
 
 // NEW: padded memory array to equal number of threads
 int N_PADDED;
@@ -96,7 +96,21 @@ void cudaErrorCheck(const char *file, int line)
 // function to see if a number is a power of 2
 int isPowerOf2(int x)
 {
-	if (x <= 0)
+
+	// performing binary subraction and comparting to original and if = 0 then a pwr of 2 
+	
+	if (((x-1) & x) == 0)
+	{
+		return 1;
+	}
+	else {
+		return 0;
+	}
+
+
+
+
+	/*if (x <= 0)
     {
         return 0;
     }
@@ -111,7 +125,7 @@ int isPowerOf2(int x)
     }
     
     return 1; // once while loop broken with no remainders then is PWR of 2 
-
+*/
 }
 
 // This will be the layout of the parallel space we will be using.
@@ -289,7 +303,7 @@ __global__ void dotProductGPU(float *a, float *b, float *c, int n)
 	{
 		fold = fold/2;
 
-		if(threadIndex < fold)
+		if(threadIndex < fold) 
 		{
 			c_sh[threadIndex] = c_sh[threadIndex] + c_sh[threadIndex + fold];
 		}
@@ -392,7 +406,7 @@ int main()
 	cudaMemcpyAsync(B_GPU, B_CPU, N*sizeof(float), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 
-	dotProductGPU<<<GridSize,BlockSize>>>(A_GPU, B_GPU, C_GPU, N);
+	dotProductGPU<<<GridSize,BlockSize>>>(A_GPU, B_GPU, C_GPU, N_PADDED);
 	cudaErrorCheck(__FILE__, __LINE__);
 
 	// Copy final result from GPU to CPU (ONE float now)
