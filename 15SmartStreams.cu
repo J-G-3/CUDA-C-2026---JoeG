@@ -1,4 +1,4 @@
-// Name:
+// Name: Joe Gonzalez
 // Two streams overlapped smartly 
 // nvcc 15SmartStreams.cu -o temp
 /*
