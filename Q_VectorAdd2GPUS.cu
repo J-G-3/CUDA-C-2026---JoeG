@@ -204,16 +204,16 @@ int main()
     int halfN, N0, N1;
     dim3 GridSize0, GridSize1;
 
-    cudaGetDeviceCount(&deviceCount);
+    cudaGetDeviceCount(&deviceCount); // get the number of devices for device count; if less than two then you cannot do this program
     if(deviceCount < 2)
     {
         printf("\nNeed at least 2 GPUs to run this program.\n\n");
         return 0;
     }
 
-    halfN = N / 2;
+    halfN = N / 2; // half of the vector so that we can split them up between GPU0 and GPU1
     N0 = halfN;
-    N1 = N - halfN;   // Handles odd N automatically
+    N1 = N - halfN;   // Handles odd N automatically (if N is odd then just subtract truncated result from full)
 
     setUpDevices();
     allocateMemory(N0, N1);
