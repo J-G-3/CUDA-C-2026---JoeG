@@ -125,21 +125,23 @@ int main(int argc, char** argv)
 	int positionY = 0;
 	for(int i = 0; i < NumberOfRandomSteps; i++)
 	{
-		positionX += getRandomDirection();
+		positionX += getRandomDirection(); // coin toss based on whether random number is greater than the median
 		positionY += getRandomDirection();
 	}
 
-	printf("\n CPU final position = (%d,%d) \n", positionX, positionY);
+	printf("\n CPU final position = (%d,%d) \n", positionX, positionY); // recording the final position of x & y for CPU
 
 	// Unified memory
 	int *PositionXGPU; // CPU read from and GPU write to arrays without memcpy 
 	int *PositionYGPU;
 	cudaMallocManaged(&PositionXGPU, NUMBER_OF_WALKS * sizeof(int)); // store allocated mem address at PositionXGPU with size of NOW*4bytes
-	cudaMallocManaged(&PositionYGPU, NUMBER_OF_WALKS * sizeof(int));
+	cudaMallocManaged(&PositionYGPU, NUMBER_OF_WALKS * sizeof(int)); // 
 
 	int NumberOfBlocks = (NUMBER_OF_WALKS + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK; // calculates number of blocks we need
 	unsigned long long BaseSeed = (unsigned long long)time(NULL); // uses current time to generate a random seed
 
+
+    // calling kernal
 	GPURandomWalk<<<NumberOfBlocks, THREADS_PER_BLOCK>>>(PositionXGPU, PositionYGPU, NumberOfRandomSteps, BaseSeed);
 	cudaDeviceSynchronize();
 
