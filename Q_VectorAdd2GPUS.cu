@@ -76,21 +76,21 @@ void cudaErrorCheck(const char *file, int line)
     }
 }
 
-void setUpDevices()
+void setUpDevices() // setup the grid sizes in main (block size set to the nice 256)
 {
     BlockSize.x = 256;
     BlockSize.y = 1;
     BlockSize.z = 1;
 }
 
-void allocateMemory(int N0, int N1)
+void allocateMemory(int N0, int N1) // allocate memory 
 {
     // Host memory
-    A_CPU = (float*)malloc(N * sizeof(float));
+    A_CPU = (float*)malloc(N * sizeof(float)); // CPU vecs set with full vector length(answer and info vecs)
     B_CPU = (float*)malloc(N * sizeof(float));
     C_CPU = (float*)malloc(N * sizeof(float));
 
-    // GPU 0 memory
+    // GPU 0 memory (setup to represent the first half of the vec)
     cudaSetDevice(0);
     cudaMalloc((void**)&A_GPU0, N0 * sizeof(float));
     cudaErrorCheck(__FILE__, __LINE__);
@@ -99,7 +99,7 @@ void allocateMemory(int N0, int N1)
     cudaMalloc((void**)&C_GPU0, N0 * sizeof(float));
     cudaErrorCheck(__FILE__, __LINE__);
 
-    // GPU 1 memory
+    // GPU 1 memory (same as above but to represent second half of the vec)
     cudaSetDevice(1);
     cudaMalloc((void**)&A_GPU1, N1 * sizeof(float));
     cudaErrorCheck(__FILE__, __LINE__);
@@ -109,7 +109,7 @@ void allocateMemory(int N0, int N1)
     cudaErrorCheck(__FILE__, __LINE__);
 }
 
-void innitialize()
+void innitialize() // fill in ACPU and BCPU with values 
 {
     for(int i = 0; i < N; i++)
     {
@@ -118,7 +118,7 @@ void innitialize()
     }
 }
 
-void addVectorsCPU(float *a, float *b, float *c, int n)
+void addVectorsCPU(float *a, float *b, float *c, int n) // just adding elements in vec (CPU)
 {
     for(int id = 0; id < n; id++)
     {
@@ -126,11 +126,11 @@ void addVectorsCPU(float *a, float *b, float *c, int n)
     }
 }
 
-__global__ void addVectorsGPU(float *a, float *b, float *c, int n)
+__global__ void addVectorsGPU(float *a, float *b, float *c, int n) // just need one kernal can use for both GPU's
 {
-    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    int id = blockIdx.x * blockDim.x + threadIdx.x; // global thread idx
 
-    if(id < n)
+    if(id < n) 
     {
         c[id] = a[id] + b[id];
     }
@@ -164,6 +164,7 @@ bool check(float *c, int n, float tolerence)
     }
 }
 
+// calculating elapsed time
 long elaspedTime(struct timeval start, struct timeval end)
 {
     long startTime = start.tv_sec * 1000000 + start.tv_usec;
@@ -178,7 +179,7 @@ void CleanUp()
     free(B_CPU);
     free(C_CPU);
 
-    cudaSetDevice(0);
+    cudaSetDevice(0); // set the device to the first GPU then  clean its vectors
     cudaFree(A_GPU0);
     cudaErrorCheck(__FILE__, __LINE__);
     cudaFree(B_GPU0);
@@ -186,7 +187,7 @@ void CleanUp()
     cudaFree(C_GPU0);
     cudaErrorCheck(__FILE__, __LINE__);
 
-    cudaSetDevice(1);
+    cudaSetDevice(1); // same thing for the second GPU
     cudaFree(A_GPU1);
     cudaErrorCheck(__FILE__, __LINE__);
     cudaFree(B_GPU1);
@@ -197,40 +198,48 @@ void CleanUp()
 
 int main()
 {
-    timeval start, end;
-    long timeCPU, timeGPU;
+    timeval start, end; // time variables
+    long timeCPU, timeGPU; // GPU and CPU time
 
     int deviceCount;
     int halfN, N0, N1;
-    dim3 GridSize0, GridSize1;
+    dim3 GridSize0;
+    dim3 GridSize1;
 
     cudaGetDeviceCount(&deviceCount); // get the number of devices for device count; if less than two then you cannot do this program
     if(deviceCount < 2)
     {
-        printf("\nNeed at least 2 GPUs to run this program.\n\n");
+        printf("\nNeed at least 2 GPUs to run this program.\n\n"); // not 2 then kill
         return 0;
     }
 
     halfN = N / 2; // half of the vector so that we can split them up between GPU0 and GPU1
-    N0 = halfN;
+    N0 = halfN; // Half of N with trunc div (see above)
     N1 = N - halfN;   // Handles odd N automatically (if N is odd then just subtract truncated result from full)
 
-    setUpDevices();
-    allocateMemory(N0, N1);
+    // Setting up the GPU
+    setUpDevices(); // device setup
+
+    // Allocate the memory you will need
+    allocateMemory(N0, N1); // allocate mem with N values (1st and 2nd half)
+
+    // putting values in vectorss
     innitialize();
 
-    // CPU addition
+    // Adding on the CPU
     gettimeofday(&start, NULL);
     addVectorsCPU(A_CPU, B_CPU, C_CPU, N);
     gettimeofday(&end, NULL);
-    timeCPU = elaspedTime(start, end);
+    timeCPU = elaspedTime(start, end); // cpu timed
 
-    // Zero out C_CPU before GPU run
+    // Zeroing out the C_CPU vector just to be safe because right now it has the correct answer in it.
     for(int id = 0; id < N; id++)
     {
         C_CPU[id] = 0.0f;
     }
 
+
+    // Setting Up the grid size using ceiling division for both GPU0 and GPU1 using their N values
     GridSize0.x = (N0 - 1) / BlockSize.x + 1;
     GridSize0.y = 1;
     GridSize0.z = 1;
@@ -243,13 +252,13 @@ int main()
     gettimeofday(&start, NULL);
 
     // GPU 0: first half
-    cudaSetDevice(0);
-    cudaMemcpy(A_GPU0, A_CPU, N0 * sizeof(float), cudaMemcpyHostToDevice);
+    cudaSetDevice(0); // setting device as the first device (GPU0)
+    cudaMemcpy(A_GPU0, A_CPU, N0 * sizeof(float), cudaMemcpyHostToDevice); // copy ACPU0 to AGPU0 
     cudaErrorCheck(__FILE__, __LINE__);
-    cudaMemcpy(B_GPU0, B_CPU, N0 * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(B_GPU0, B_CPU, N0 * sizeof(float), cudaMemcpyHostToDevice); // same thing for vec B
     cudaErrorCheck(__FILE__, __LINE__);
 
-    addVectorsGPU<<<GridSize0, BlockSize>>>(A_GPU0, B_GPU0, C_GPU0, N0);
+    addVectorsGPU<<<GridSize0, BlockSize>>>(A_GPU0, B_GPU0, C_GPU0, N0); // adding the vectors
     cudaErrorCheck(__FILE__, __LINE__);
 
     // GPU 1: second half
@@ -269,7 +278,7 @@ int main()
 
     // Copy results back from GPU 1
     cudaSetDevice(1);
-    cudaMemcpy(C_CPU + N0, C_GPU1, N1 * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(C_CPU + N0, C_GPU1, N1 * sizeof(float), cudaMemcpyDeviceToHost); // offset by N0 then send N1*4bytes of data to the CPU
     cudaErrorCheck(__FILE__, __LINE__);
 
     // Synchronize both GPUs
@@ -284,7 +293,7 @@ int main()
     gettimeofday(&end, NULL);
     timeGPU = elaspedTime(start, end);
 
-    if(check(C_CPU, N, Tolerance) == false)
+    if(check(C_CPU, N, Tolerance) == false) // if check bad and tol not satisfied then something bad
     {
         printf("\n\nSomething went wrong in the GPU vector addition\n");
     }
@@ -295,8 +304,12 @@ int main()
         printf("\nThe time it took on the GPU was %ld microseconds", timeGPU);
     }
 
+
+    // Your done so cleanup your room
     CleanUp();
 
+    // Making sure it flushes out anything in the print buffer.
     printf("\n\n");
+    
     return 0;
 }
