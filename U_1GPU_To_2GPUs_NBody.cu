@@ -298,9 +298,9 @@ void nBody()
 
         // get forces and bodies second half GPU1
         cudaSetDevice(1);
-		getForces<<<GridSize,BlockSize>>>(PGPU0, VGPU0, FGPU0, MGPU0, G, H, HalfN, N1, N);
+		getForces<<<GridSize,BlockSize>>>(PGPU1, VGPU1, FGPU1, MGPU1, G, H, HalfN, N1, N);
 		cudaErrorCheck(__FILE__, __LINE__);
-		moveBodies<<<GridSize,BlockSize>>>(PGPU0, VGPU0, FGPU0, MGPU0, Damp, dt, t, HalfN, N1, N);
+		moveBodies<<<GridSize,BlockSize>>>(PGPU1, VGPU1, FGPU1, MGPU1, Damp, dt, t, HalfN, N1, N);
 		cudaErrorCheck(__FILE__, __LINE__);
         
 
